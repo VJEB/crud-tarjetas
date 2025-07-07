@@ -9,7 +9,7 @@ export class DatabaseService implements OnModuleDestroy {
     const config: PoolOptions = {
       host: process.env.DB_HOST ?? 'localhost',
       user: process.env.DB_USER ?? 'root',
-      password: process.env.DB_PASS ?? 'password',
+      password: process.env.DB_PASS ?? 'jafet10espinoza',
       database: process.env.DB_NAME ?? 'crud_tarjetas',
       waitForConnections: true,
       connectionLimit: 10,
