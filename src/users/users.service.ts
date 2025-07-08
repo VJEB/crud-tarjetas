@@ -50,4 +50,17 @@ export class UsersService {
 
     return users[0];
   }
+
+  async findByUserId(id: number): Promise<any> {
+    const [users] = await this.connection.query(
+      'SELECT id, username FROM users WHERE id = ?',
+      [id]
+    );
+
+    if (!Array.isArray(users) || users.length === 0) {
+      throw new NotFoundException('User not found');
+    }
+
+    return users[0];
+  }
 }

@@ -53,4 +53,20 @@ export class AuthService {
       throw new BadRequestException('Registration failed');
     }
   }
+
+  async getProfile(userId: number) {
+    try {
+      const user = await this.usersService.findByUserId(userId);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      const { password, ...result } = user;
+      return result;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new UnauthorizedException('User not found');
+      }
+      throw error;
+    }
+  }
 }

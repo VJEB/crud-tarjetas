@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Post, Get, Request, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { 
   ApiTags, 
   ApiOperation, 
@@ -7,12 +7,15 @@ import {
   ApiCreatedResponse,
   ApiBadRequestResponse,
   ApiUnauthorizedResponse,
-  ApiConflictResponse
+  ApiConflictResponse,
+  ApiBearerAuth
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { UserResponseDto } from '../users/dto/user-response.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -95,5 +98,19 @@ export class AuthController {
   })
   async register(@Body() registerUserDto: RegisterUserDto) {
     return this.authService.register(registerUserDto.username, registerUserDto.password);
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns the current user profile',
+    type: UserResponseDto
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async getProfile(@Request() req) {
+    return this.authService.getProfile(req.user.userId);
   }
 }
