@@ -18,9 +18,7 @@ export class NotesService {
 
   async findAll() {
     const userId = this.req.user?.userId;
-    if (!userId) {
-      throw new Error('User not authenticated - missing userId in JWT token');
-    }
+    if (!userId) throw new Error('User not authenticated');
 
     const [notes]: any[] = await this.connection.query(
       'SELECT * FROM notes WHERE user_id = ?',
@@ -40,9 +38,7 @@ export class NotesService {
 
   async findOne(id: number) {
     const userId = this.req.user?.userId;
-    if (!userId) {
-      throw new Error('User not authenticated - missing userId in JWT token');
-    }
+    if (!userId) throw new Error('User not authenticated');
 
     const [rows]: any[] = await this.connection.query(
       'SELECT * FROM notes WHERE id = ? AND user_id = ?',
@@ -60,10 +56,18 @@ export class NotesService {
   }
 
   async create(dto: CreateNoteDto) {
+    console.log(JSON.stringify({
+      method: this.req.method,
+      url: this.req.url,
+      headers: this.req.headers,
+      body: this.req.body,
+      user: this.req.user,
+      params: this.req.params,
+      query: this.req.query,
+    }, null, 2));
+    
     const userId = this.req.user?.userId;
-    if (!userId) {
-      throw new Error('User not authenticated - missing userId in JWT token');
-    }
+    if (!userId) throw new Error('User not authenticated');
     
     const { title, contents = [] } = dto;
 
@@ -89,10 +93,9 @@ export class NotesService {
 
   async update(id: number, dto: UpdateNoteDto) {
     const userId = this.req.user?.userId;
-    if (!userId) {
-      throw new Error('User not authenticated - missing userId in JWT token');
-    }
+    if (!userId) throw new Error('User not authenticated');
 
+    // First verify the note belongs to the user
     const [existingNote]: any[] = await this.connection.query(
       'SELECT id FROM notes WHERE id = ? AND user_id = ?',
       [id, userId]
@@ -126,10 +129,9 @@ export class NotesService {
 
   async remove(id: number) {
     const userId = this.req.user?.userId;
-    if (!userId) {
-      throw new Error('User not authenticated - missing userId in JWT token');
-    }
+    if (!userId) throw new Error('User not authenticated');
 
+    // First verify the note belongs to the user
     const [existingNote]: any[] = await this.connection.query(
       'SELECT id FROM notes WHERE id = ? AND user_id = ?',
       [id, userId]
