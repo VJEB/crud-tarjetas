@@ -8,14 +8,19 @@ export class DatabaseService implements OnModuleDestroy {
   constructor() {
     const config: PoolOptions = {
       host: process.env.DB_HOST ?? 'localhost',
-      user: process.env.DB_USER ?? 'root',
-      password: process.env.DB_PASS ?? 'jafet10espinoza',
-      database: process.env.DB_NAME ?? 'crud_tarjetas',
+      user: process.env.DB_USERNAME ?? 'root',
+      password: process.env.DB_PASSWORD ?? 'jafet10espinoza',
+      database: process.env.DB_DATABASE ?? 'crud_tarjetas',
       waitForConnections: true,
       connectionLimit: 10,
       namedPlaceholders: true,
     };
-    this.pool = createPool(config);
+    try {
+      this.pool = createPool(config);
+    } catch (error) {
+      console.error('DatabaseService initialization failed:', error);
+      throw error;
+    }
   }
 
   async getConnection(): Promise<PoolConnection> {

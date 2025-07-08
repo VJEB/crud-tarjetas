@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { PoolConnection } from 'mysql2/promise';
 import { MovementLoggerService } from '../logger/movement-logger.service';
+import { CreateNoteDto } from './dto/create-note.dto';
+import { UpdateNoteDto } from './dto/update-note.dto';
 
 @Injectable()
 export class NotesService {
@@ -15,7 +17,15 @@ export class NotesService {
   }
 
   async findAll() {
-    const [notes]: any[] = await this.connection.query('SELECT * FROM notes');
+    const userId = this.req.user?.userId;
+    if (!userId) {
+      throw new Error('User not authenticated - missing userId in JWT token');
+    }
+
+    const [notes]: any[] = await this.connection.query(
+      'SELECT * FROM notes WHERE user_id = ?',
+      [userId]
+    );
 
     for (const note of notes) {
       const [contents] = await this.connection.query(
@@ -29,9 +39,14 @@ export class NotesService {
   }
 
   async findOne(id: number) {
+    const userId = this.req.user?.userId;
+    if (!userId) {
+      throw new Error('User not authenticated - missing userId in JWT token');
+    }
+
     const [rows]: any[] = await this.connection.query(
-      'SELECT * FROM notes WHERE id = ?',
-      [id],
+      'SELECT * FROM notes WHERE id = ? AND user_id = ?',
+      [id, userId],
     );
     const note = rows[0];
     if (!note) return null;
@@ -44,12 +59,17 @@ export class NotesService {
     return note;
   }
 
-  async create(dto: any) {
+  async create(dto: CreateNoteDto) {
+    const userId = this.req.user?.userId;
+    if (!userId) {
+      throw new Error('User not authenticated - missing userId in JWT token');
+    }
+    
     const { title, contents = [] } = dto;
 
     const [result]: any = await this.connection.query(
-      'INSERT INTO notes (title) VALUES (?)',
-      [title],
+      'INSERT INTO notes (title, user_id) VALUES (?, ?)',
+      [title, userId],
     );
     const noteId = result.insertId;
 
@@ -67,12 +87,27 @@ export class NotesService {
     return created;
   }
 
-  async update(id: number, dto: any) {
-    const { title, contents } = dto;
-
-    if (title !== undefined) {
-      await this.connection.query('UPDATE notes SET title = ? WHERE id = ?', [title, id]);
+  async update(id: number, dto: UpdateNoteDto) {
+    const userId = this.req.user?.userId;
+    if (!userId) {
+      throw new Error('User not authenticated - missing userId in JWT token');
     }
+
+    const [existingNote]: any[] = await this.connection.query(
+      'SELECT id FROM notes WHERE id = ? AND user_id = ?',
+      [id, userId]
+    );
+    
+    if (!existingNote.length) {
+      throw new Error('Note not found or access denied');
+    }
+
+    const { title, contents = [] } = dto;
+
+    await this.connection.query(
+      'UPDATE notes SET title = ? WHERE id = ? AND user_id = ?',
+      [title, id, userId]
+    );
 
     if (Array.isArray(contents)) {
       await this.connection.query('DELETE FROM note_contents WHERE note_id = ?', [id]);
@@ -90,8 +125,22 @@ export class NotesService {
   }
 
   async remove(id: number) {
-    await this.connection.query('DELETE FROM notes WHERE id = ?', [id]);
-    this.movementLogger.logMovement('delete', { id });
-    return { id };
+    const userId = this.req.user?.userId;
+    if (!userId) {
+      throw new Error('User not authenticated - missing userId in JWT token');
+    }
+
+    const [existingNote]: any[] = await this.connection.query(
+      'SELECT id FROM notes WHERE id = ? AND user_id = ?',
+      [id, userId]
+    );
+    
+    if (!existingNote.length) {
+      throw new Error('Note not found or access denied');
+    }
+
+    await this.connection.query('DELETE FROM notes WHERE id = ? AND user_id = ?', [id, userId]);
+    await this.connection.query('DELETE FROM note_contents WHERE note_id = ?', [id]);
+    return { message: 'Note deleted successfully' };
   }
 }
