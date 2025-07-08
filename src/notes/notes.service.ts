@@ -133,7 +133,7 @@ export class NotesService {
 
     // First verify the note belongs to the user
     const [existingNote]: any[] = await this.connection.query(
-      'SELECT id FROM notes WHERE id = ? AND user_id = ?',
+      'SELECT * FROM notes WHERE id = ? AND user_id = ?',
       [id, userId]
     );
     
@@ -143,6 +143,10 @@ export class NotesService {
 
     await this.connection.query('DELETE FROM notes WHERE id = ? AND user_id = ?', [id, userId]);
     await this.connection.query('DELETE FROM note_contents WHERE note_id = ?', [id]);
+    
+    // Log the deletion
+    this.movementLogger.logMovement('delete', existingNote[0]);
+    
     return { message: 'Note deleted successfully' };
   }
 }
